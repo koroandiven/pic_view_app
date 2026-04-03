@@ -20,7 +20,6 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-<<<<<<< HEAD
       - name: Cache Gradle packages
         uses: actions/cache@v4
         with:
@@ -34,12 +33,6 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y android-sdk
-=======
-      - name: Download Gradle Wrapper JAR
-        run: |
-          mkdir -p gradle/wrapper
-          curl -L -o gradle/wrapper/gradle-wrapper.jar https://github.com/gradle/gradle/raw/v8.2.0/gradle/wrapper/gradle-wrapper.jar
->>>>>>> f987c91635359b7d9275725342de5972a6777432
 
       - name: Grant execute permission
         run: chmod +x gradlew
