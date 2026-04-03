@@ -34,6 +34,11 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y android-sdk
 
+      - name: Download Gradle Wrapper JAR
+        run: |
+          mkdir -p gradle/wrapper
+          curl -L -o gradle/wrapper/gradle-wrapper.jar https://github.com/gradle/gradle/raw/v8.2.0/gradle/wrapper/gradle-wrapper.jar
+
       - name: Grant execute permission
         run: chmod +x gradlew
 
