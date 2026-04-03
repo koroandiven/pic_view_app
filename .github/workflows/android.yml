@@ -20,19 +20,10 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Cache Gradle packages
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*') }}
-          restore-keys: ${{ runner.os }}-gradle-
-
-      - name: Setup Android SDK
+      - name: Download Gradle Wrapper JAR
         run: |
-          sudo apt-get update
-          sudo apt-get install -y android-sdk
+          mkdir -p gradle/wrapper
+          curl -L -o gradle/wrapper/gradle-wrapper.jar https://github.com/gradle/gradle/raw/v8.2.0/gradle/wrapper/gradle-wrapper.jar
 
       - name: Grant execute permission
         run: chmod +x gradlew
