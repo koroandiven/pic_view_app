@@ -1,7 +1,11 @@
 package com.picviewapp.data.repository
 
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import android.os.Environment
+import android.provider.DocumentsContract
+import androidx.documentfile.provider.DocumentFile
 import com.picviewapp.data.model.FolderInfo
 import com.picviewapp.data.model.ImageInfo
 import com.picviewapp.data.model.RecentFolder
@@ -69,6 +73,25 @@ class FileRepository @Inject constructor(
         sortImages(images, sortOrder)
     }
 
+    suspend fun getImagesInFolderUri(uri: Uri, sortOrder: SortOrder = SortOrder.NAME_ASC): List<ImageInfo> = withContext(Dispatchers.IO) {
+        val documentFile = DocumentFile.fromTreeUri(context, uri) ?: return@withContext emptyList()
+        
+        val images = documentFile.listFiles()
+            .filter { it.isFile && isDocumentFileImage(it) }
+            .mapNotNull { docFile ->
+                docFile.uri.path?.let { path ->
+                    ImageInfo(
+                        name = docFile.name ?: "unknown",
+                        path = docFile.uri.toString(),
+                        size = docFile.length(),
+                        lastModified = docFile.lastModified()
+                    )
+                }
+            }
+
+        sortImages(images, sortOrder)
+    }
+
     private fun sortImages(images: List<ImageInfo>, sortOrder: SortOrder): List<ImageInfo> {
         return when (sortOrder) {
             SortOrder.NAME_ASC -> images.sortedBy { it.name.lowercase() }
@@ -113,7 +136,41 @@ class FileRepository @Inject constructor(
         return extension in imageExtensions
     }
 
+    private fun isDocumentFileImage(file: DocumentFile): Boolean {
+        val mimeType = file.type?.lowercase() ?: return false
+        return mimeType.startsWith("image/") || imageExtensions.any { ext ->
+            file.name?.lowercase()?.endsWith(".$ext") == true
+        }
+    }
+
     private fun getImageFilesInDir(dir: File): List<File> {
         return dir.listFiles()?.filter { it.isFile && isImageFile(it) } ?: emptyList()
+    }
+
+    fun takePersistablePermission(uri: Uri) {
+        try {
+            val flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+            context.contentResolver.takePersistableUriPermission(uri, flags)
+        } catch (e: SecurityException) {
+            try {
+                context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            } catch (e2: SecurityException) {
+                // Ignore if can't get write permission
+            }
+        }
+    }
+
+    fun getPathFromUri(uri: Uri): String? {
+        val docId = DocumentsContract.getTreeDocumentId(uri)
+        val split = docId.split(":")
+        val type = split.getOrNull(0)
+        val relativePath = split.getOrNull(1) ?: ""
+
+        return when {
+            type == "primary" -> "${Environment.getExternalStorageDirectory()}/$relativePath"
+            type == "home" -> "${Environment.getExternalStorageDirectory()}/$relativePath"
+            relativePath.isNotEmpty() -> "/storage/$type/$relativePath"
+            else -> "/storage/$type"
+        }
     }
 }

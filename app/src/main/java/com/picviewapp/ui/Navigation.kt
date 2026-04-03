@@ -25,7 +25,9 @@ object Routes {
 }
 
 @Composable
-fun PicViewNavHost() {
+fun PicViewNavHost(
+    onOpenFolderPicker: () -> Unit = {}
+) {
     val navController = rememberNavController()
 
     NavHost(navController = navController, startDestination = Routes.HOME) {
@@ -36,7 +38,8 @@ fun PicViewNavHost() {
                 },
                 onSearchClick = {
                     navController.navigate(Routes.SEARCH)
-                }
+                },
+                onOpenFolderPicker = onOpenFolderPicker
             )
         }
 
