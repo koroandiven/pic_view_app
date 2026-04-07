@@ -11,7 +11,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.navigation.NavController
+import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -37,7 +37,7 @@ object Routes {
 
 @Composable
 fun PicViewNavHost(
-    navController: NavController = rememberNavController()
+    navController: NavHostController = rememberNavController()
 ) {
     var pendingFolderPath by remember { mutableStateOf<String?>(null) }
 
