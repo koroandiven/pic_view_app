@@ -15,7 +15,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Sort
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -35,7 +38,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
-import com.picviewapp.data.model.ImageInfo
+import com.picviewapp.data.model.SortOrder
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -48,6 +51,8 @@ fun ImageViewerScreen(
     val images by viewModel.images.collectAsState()
     val currentIndex by viewModel.currentIndex.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
+    val sortOrder by viewModel.sortOrder.collectAsState()
+    val showSortMenu by viewModel.showSortMenu.collectAsState()
 
     LaunchedEffect(folderPath) {
         viewModel.loadImages(folderPath, initialIndex)
@@ -66,10 +71,47 @@ fun ImageViewerScreen(
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")
                     }
                 },
+                actions = {
+                    Box {
+                        IconButton(onClick = { viewModel.toggleSortMenu() }) {
+                            Icon(Icons.Default.Sort, contentDescription = "Sort")
+                        }
+                        DropdownMenu(
+                            expanded = showSortMenu,
+                            onDismissRequest = { viewModel.dismissSortMenu() }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Name (A-Z)") },
+                                onClick = { viewModel.setSortOrder(SortOrder.NAME_ASC) }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Name (Z-A)") },
+                                onClick = { viewModel.setSortOrder(SortOrder.NAME_DESC) }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Date (Newest)") },
+                                onClick = { viewModel.setSortOrder(SortOrder.DATE_DESC) }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Date (Oldest)") },
+                                onClick = { viewModel.setSortOrder(SortOrder.DATE_ASC) }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Size (Largest)") },
+                                onClick = { viewModel.setSortOrder(SortOrder.SIZE_DESC) }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Size (Smallest)") },
+                                onClick = { viewModel.setSortOrder(SortOrder.SIZE_ASC) }
+                            )
+                        }
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = Color.Black.copy(alpha = 0.7f),
                     titleContentColor = Color.White,
-                    navigationIconContentColor = Color.White
+                    navigationIconContentColor = Color.White,
+                    actionIconContentColor = Color.White
                 )
             )
         },

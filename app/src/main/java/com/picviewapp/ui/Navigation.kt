@@ -1,6 +1,17 @@
 package com.picviewapp.ui
 
+import android.net.Uri
+import android.os.Environment
+import android.provider.DocumentsContract
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.navigation.NavController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -26,9 +37,29 @@ object Routes {
 
 @Composable
 fun PicViewNavHost(
-    onOpenFolderPicker: () -> Unit = {}
+    navController: NavController = rememberNavController()
 ) {
-    val navController = rememberNavController()
+    var pendingFolderPath by remember { mutableStateOf<String?>(null) }
+
+    val folderPickerLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocumentTree()
+    ) { uri: Uri? ->
+        uri?.let {
+            val path = getPathFromUri(it)
+            if (path != null) {
+                pendingFolderPath = path
+            }
+        }
+    }
+
+    LaunchedEffect(pendingFolderPath) {
+        pendingFolderPath?.let { path ->
+            pendingFolderPath = null
+            navController.navigate(Routes.browser(path)) {
+                popUpTo(Routes.HOME)
+            }
+        }
+    }
 
     NavHost(navController = navController, startDestination = Routes.HOME) {
         composable(Routes.HOME) {
@@ -39,7 +70,9 @@ fun PicViewNavHost(
                 onSearchClick = {
                     navController.navigate(Routes.SEARCH)
                 },
-                onOpenFolderPicker = onOpenFolderPicker
+                onOpenFolderPicker = {
+                    folderPickerLauncher.launch(null)
+                }
             )
         }
 
@@ -89,5 +122,20 @@ fun PicViewNavHost(
                 }
             )
         }
+    }
+}
+
+private fun getPathFromUri(uri: Uri): String? {
+    val docId = DocumentsContract.getTreeDocumentId(uri)
+    val split = docId.split(":")
+    val type = split.getOrNull(0)
+    val relativePath = split.getOrNull(1) ?: ""
+
+    return when {
+        type == "primary" -> "${Environment.getExternalStorageDirectory()}/$relativePath"
+        type == "home" -> "${Environment.getExternalStorageDirectory()}/$relativePath"
+        type == "raw:/" -> relativePath
+        relativePath.isNotEmpty() -> "/storage/$type/$relativePath"
+        else -> "/storage/$type"
     }
 }

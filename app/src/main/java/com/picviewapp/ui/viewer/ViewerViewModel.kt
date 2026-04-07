@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.picviewapp.data.model.ImageInfo
+import com.picviewapp.data.model.SortOrder
 import com.picviewapp.domain.usecase.GetImagesUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -26,10 +27,19 @@ class ViewerViewModel @Inject constructor(
     private val _isLoading = MutableStateFlow(true)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
+    private val _sortOrder = MutableStateFlow(SortOrder.NAME_ASC)
+    val sortOrder: StateFlow<SortOrder> = _sortOrder.asStateFlow()
+
+    private val _showSortMenu = MutableStateFlow(false)
+    val showSortMenu: StateFlow<Boolean> = _showSortMenu.asStateFlow()
+
+    private var currentFolderPath: String = ""
+
     fun loadImages(folderPath: String, initialIndex: Int) {
+        currentFolderPath = folderPath
         viewModelScope.launch {
             _isLoading.value = true
-            val result = getImagesUseCase(folderPath)
+            val result = getImagesUseCase(folderPath, _sortOrder.value)
             _images.value = result
             _currentIndex.value = initialIndex.coerceIn(0, result.size - 1)
             _isLoading.value = false
@@ -38,5 +48,25 @@ class ViewerViewModel @Inject constructor(
 
     fun setCurrentIndex(index: Int) {
         _currentIndex.value = index.coerceIn(0, _images.value.size - 1)
+    }
+
+    fun setSortOrder(order: SortOrder) {
+        _sortOrder.value = order
+        _showSortMenu.value = false
+        viewModelScope.launch {
+            _isLoading.value = true
+            val result = getImagesUseCase(currentFolderPath, order)
+            _images.value = result
+            _currentIndex.value = 0
+            _isLoading.value = false
+        }
+    }
+
+    fun toggleSortMenu() {
+        _showSortMenu.value = !_showSortMenu.value
+    }
+
+    fun dismissSortMenu() {
+        _showSortMenu.value = false
     }
 }
