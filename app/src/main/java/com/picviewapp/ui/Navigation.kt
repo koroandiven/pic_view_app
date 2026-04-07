@@ -31,8 +31,23 @@ object Routes {
     const val BROWSER = "browser/{folderPath}"
     const val VIEWER = "viewer/{folderPath}/{imageIndex}"
 
-    fun browser(folderPath: String) = "browser/${URLEncoder.encode(folderPath, StandardCharsets.UTF_8.toString())}"
-    fun viewer(folderPath: String, imageIndex: Int) = "viewer/${URLEncoder.encode(folderPath, StandardCharsets.UTF_8.toString())}/$imageIndex"
+    fun browser(folderPath: String): String {
+        val encoded = if (folderPath.startsWith("content://")) {
+            android.util.Base64.encodeToString(folderPath.toByteArray(Charsets.UTF_8), android.util.Base64.NO_WRAP)
+        } else {
+            URLEncoder.encode(folderPath, StandardCharsets.UTF_8.toString())
+        }
+        return "browser/$encoded"
+    }
+    
+    fun viewer(folderPath: String, imageIndex: Int): String {
+        val encoded = if (folderPath.startsWith("content://")) {
+            android.util.Base64.encodeToString(folderPath.toByteArray(Charsets.UTF_8), android.util.Base64.NO_WRAP)
+        } else {
+            URLEncoder.encode(folderPath, StandardCharsets.UTF_8.toString())
+        }
+        return "viewer/$encoded/$imageIndex"
+    }
 }
 
 @Composable
@@ -99,7 +114,15 @@ fun PicViewNavHost(
             arguments = listOf(navArgument("folderPath") { type = NavType.StringType })
         ) { backStackEntry ->
             val encodedPath = backStackEntry.arguments?.getString("folderPath") ?: ""
-            val folderPath = URLDecoder.decode(encodedPath, StandardCharsets.UTF_8.toString())
+            val folderPath = if (encodedPath.length > 20) {
+                try {
+                    String(android.util.Base64.decode(encodedPath, android.util.Base64.NO_WRAP), Charsets.UTF_8)
+                } catch (e: Exception) {
+                    URLDecoder.decode(encodedPath, StandardCharsets.UTF_8.toString())
+                }
+            } else {
+                URLDecoder.decode(encodedPath, StandardCharsets.UTF_8.toString())
+            }
             FolderBrowserScreen(
                 folderPath = folderPath,
                 onImageClick = { imageIndex ->
@@ -119,7 +142,15 @@ fun PicViewNavHost(
             )
         ) { backStackEntry ->
             val encodedPath = backStackEntry.arguments?.getString("folderPath") ?: ""
-            val folderPath = URLDecoder.decode(encodedPath, StandardCharsets.UTF_8.toString())
+            val folderPath = if (encodedPath.length > 20) {
+                try {
+                    String(android.util.Base64.decode(encodedPath, android.util.Base64.NO_WRAP), Charsets.UTF_8)
+                } catch (e: Exception) {
+                    URLDecoder.decode(encodedPath, StandardCharsets.UTF_8.toString())
+                }
+            } else {
+                URLDecoder.decode(encodedPath, StandardCharsets.UTF_8.toString())
+            }
             val imageIndex = backStackEntry.arguments?.getInt("imageIndex") ?: 0
             ImageViewerScreen(
                 folderPath = folderPath,
