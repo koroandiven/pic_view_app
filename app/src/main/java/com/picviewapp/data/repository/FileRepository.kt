@@ -86,20 +86,24 @@ class FileRepository @Inject constructor(
     }
 
     suspend fun getImagesInFolderUri(uri: Uri, sortOrder: SortOrder = SortOrder.NAME_ASC): List<ImageInfo> = withContext(Dispatchers.IO) {
-        val documentFile = DocumentFile.fromTreeUri(context, uri) ?: return@withContext emptyList()
-        
-        val images = documentFile.listFiles()
-            .filter { it.isFile && isDocumentFileImage(it) }
-            .mapNotNull { docFile ->
-                ImageInfo(
-                    name = docFile.name ?: "unknown",
-                    path = docFile.uri.toString(),
-                    size = docFile.length(),
-                    lastModified = docFile.lastModified()
-                )
-            }
+        try {
+            val documentFile = DocumentFile.fromTreeUri(context, uri) ?: return@withContext emptyList()
+            
+            val images = documentFile.listFiles()
+                .filter { it.isFile && isDocumentFileImage(it) }
+                .map { docFile ->
+                    ImageInfo(
+                        name = docFile.name ?: "unknown",
+                        path = docFile.uri.toString(),
+                        size = docFile.length(),
+                        lastModified = docFile.lastModified()
+                    )
+                }
 
-        sortImages(images, sortOrder)
+            sortImages(images, sortOrder)
+        } catch (e: Exception) {
+            emptyList()
+        }
     }
 
     private fun sortImages(images: List<ImageInfo>, sortOrder: SortOrder): List<ImageInfo> {

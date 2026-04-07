@@ -1,8 +1,7 @@
 package com.picviewapp.ui
 
+import android.content.Intent
 import android.net.Uri
-import android.os.Environment
-import android.provider.DocumentsContract
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
@@ -11,6 +10,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -39,12 +39,22 @@ object Routes {
 fun PicViewNavHost(
     navController: NavHostController = rememberNavController()
 ) {
+    val context = LocalContext.current
     var pendingFolderPath by remember { mutableStateOf<String?>(null) }
 
     val folderPickerLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocumentTree()
     ) { uri: Uri? ->
         uri?.let {
+            try {
+                val flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                context.contentResolver.takePersistableUriPermission(it, flags)
+            } catch (e: SecurityException) {
+                try {
+                    context.contentResolver.takePersistableUriPermission(it, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                } catch (e2: SecurityException) {
+                }
+            }
             pendingFolderPath = it.toString()
         }
     }
@@ -119,20 +129,5 @@ fun PicViewNavHost(
                 }
             )
         }
-    }
-}
-
-private fun getPathFromUri(uri: Uri): String? {
-    val docId = DocumentsContract.getTreeDocumentId(uri)
-    val split = docId.split(":")
-    val type = split.getOrNull(0)
-    val relativePath = split.getOrNull(1) ?: ""
-
-    return when {
-        type == "primary" -> "${Environment.getExternalStorageDirectory()}/$relativePath"
-        type == "home" -> "${Environment.getExternalStorageDirectory()}/$relativePath"
-        type == "raw:/" -> relativePath
-        relativePath.isNotEmpty() -> "/storage/$type/$relativePath"
-        else -> "/storage/$type"
     }
 }
