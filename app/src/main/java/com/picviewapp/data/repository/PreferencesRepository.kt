@@ -28,7 +28,7 @@ class PreferencesRepository @Inject constructor(
         parseRecentFolders(json)
     }
 
-    suspend fun addRecentFolder(path: String, name: String) {
+    suspend fun addRecentFolder(path: String, name: String, uri: String? = null) {
         context.dataStore.edit { preferences ->
             val currentJson = preferences[recentFoldersKey] ?: "[]"
             val folders = parseRecentFolders(currentJson).toMutableList()
@@ -38,14 +38,16 @@ class PreferencesRepository @Inject constructor(
                 folders.remove(existing)
                 folders.add(0, existing.copy(
                     lastAccessed = System.currentTimeMillis(),
-                    accessCount = existing.accessCount + 1
+                    accessCount = existing.accessCount + 1,
+                    uri = uri ?: existing.uri
                 ))
             } else {
                 folders.add(0, RecentFolder(
                     path = path,
                     name = name,
                     lastAccessed = System.currentTimeMillis(),
-                    accessCount = 1
+                    accessCount = 1,
+                    uri = uri
                 ))
             }
 
@@ -71,7 +73,8 @@ class PreferencesRepository @Inject constructor(
                     path = obj.getString("path"),
                     name = obj.getString("name"),
                     lastAccessed = obj.getLong("lastAccessed"),
-                    accessCount = obj.optInt("accessCount", 1)
+                    accessCount = obj.optInt("accessCount", 1),
+                    uri = obj.optString("uri").takeIf { it.isNotEmpty() }
                 )
             }
         } catch (e: Exception) {
@@ -87,6 +90,7 @@ class PreferencesRepository @Inject constructor(
                 put("name", folder.name)
                 put("lastAccessed", folder.lastAccessed)
                 put("accessCount", folder.accessCount)
+                folder.uri?.let { put("uri", it) }
             }
             array.put(obj)
         }

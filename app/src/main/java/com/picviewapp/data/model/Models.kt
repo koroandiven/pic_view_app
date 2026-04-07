@@ -56,5 +56,6 @@ data class RecentFolder(
     val path: String,
     val name: String,
     val lastAccessed: Long,
-    val accessCount: Int = 1
+    val accessCount: Int = 1,
+    val uri: String? = null
 )

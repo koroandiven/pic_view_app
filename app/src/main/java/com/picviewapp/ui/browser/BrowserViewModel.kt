@@ -36,13 +36,19 @@ class BrowserViewModel @Inject constructor(
 
     private var currentFolderPath: String = ""
     private var currentFolderName: String = ""
+    private var currentFolderUri: String? = null
 
-    fun loadFolder(folderPath: String) {
+    fun loadFolder(folderPath: String, folderUri: String? = null) {
         currentFolderPath = folderPath
-        currentFolderName = File(folderPath).name
+        currentFolderUri = folderUri
+        currentFolderName = if (folderPath.startsWith("content://")) {
+            folderUri?.substringAfterLast("/") ?: "Folder"
+        } else {
+            File(folderPath).name
+        }
         viewModelScope.launch {
             _isLoading.value = true
-            preferencesRepository.addRecentFolder(folderPath, currentFolderName)
+            preferencesRepository.addRecentFolder(folderPath, currentFolderName, folderUri)
             val result = getImagesUseCase(folderPath, _sortOrder.value)
             _images.value = result
             _isLoading.value = false

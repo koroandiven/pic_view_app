@@ -45,10 +45,7 @@ fun PicViewNavHost(
         ActivityResultContracts.OpenDocumentTree()
     ) { uri: Uri? ->
         uri?.let {
-            val path = getPathFromUri(it)
-            if (path != null) {
-                pendingFolderPath = path
-            }
+            pendingFolderPath = it.toString()
         }
     }
 

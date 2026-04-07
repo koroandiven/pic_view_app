@@ -21,7 +21,11 @@ import javax.inject.Singleton
 class FileRepository @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
-    private val imageExtensions = setOf("jpg", "jpeg", "png", "gif", "bmp", "webp", "heic", "heif")
+    private val imageExtensions = setOf(
+        "jpg", "jpeg", "png", "gif", "bmp", "webp", "heic", "heif",
+        "JPG", "JPEG", "PNG", "GIF", "BMP", "WEBP", "HEIC", "HEIF",
+        "avif", "AVIF", "svg", "SVG", "ico", "ICO", "tiff", "tif", "TIFF", "TIF"
+    )
 
     suspend fun getFoldersWithImages(rootPath: String? = null): List<FolderInfo> = withContext(Dispatchers.IO) {
         val root = rootPath?.let { File(it) } ?: Environment.getExternalStorageDirectory()
@@ -64,13 +68,21 @@ class FileRepository @Inject constructor(
     }
 
     suspend fun getImagesInFolder(folderPath: String, sortOrder: SortOrder = SortOrder.NAME_ASC): List<ImageInfo> = withContext(Dispatchers.IO) {
-        val folder = File(folderPath)
-        val images = folder.listFiles()
-            ?.filter { it.isFile && isImageFile(it) }
-            ?.map { ImageInfo.fromFile(it) }
-            ?: emptyList()
+        when {
+            folderPath.startsWith("content://") -> {
+                val uri = Uri.parse(folderPath)
+                getImagesInFolderUri(uri, sortOrder)
+            }
+            else -> {
+                val folder = File(folderPath)
+                val images = folder.listFiles()
+                    ?.filter { it.isFile && isImageFile(it) }
+                    ?.map { ImageInfo.fromFile(it) }
+                    ?: emptyList()
 
-        sortImages(images, sortOrder)
+                sortImages(images, sortOrder)
+            }
+        }
     }
 
     suspend fun getImagesInFolderUri(uri: Uri, sortOrder: SortOrder = SortOrder.NAME_ASC): List<ImageInfo> = withContext(Dispatchers.IO) {
@@ -79,14 +91,12 @@ class FileRepository @Inject constructor(
         val images = documentFile.listFiles()
             .filter { it.isFile && isDocumentFileImage(it) }
             .mapNotNull { docFile ->
-                docFile.uri.path?.let { path ->
-                    ImageInfo(
-                        name = docFile.name ?: "unknown",
-                        path = docFile.uri.toString(),
-                        size = docFile.length(),
-                        lastModified = docFile.lastModified()
-                    )
-                }
+                ImageInfo(
+                    name = docFile.name ?: "unknown",
+                    path = docFile.uri.toString(),
+                    size = docFile.length(),
+                    lastModified = docFile.lastModified()
+                )
             }
 
         sortImages(images, sortOrder)
@@ -137,9 +147,10 @@ class FileRepository @Inject constructor(
     }
 
     private fun isDocumentFileImage(file: DocumentFile): Boolean {
-        val mimeType = file.type?.lowercase() ?: return false
+        val mimeType = file.type?.lowercase() ?: ""
+        val fileName = file.name?.lowercase() ?: ""
         return mimeType.startsWith("image/") || imageExtensions.any { ext ->
-            file.name?.lowercase()?.endsWith(".$ext") == true
+            fileName.endsWith(".$ext")
         }
     }
 
